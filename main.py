@@ -3,9 +3,7 @@ from Circular_Queue3 import *
 import tkinter as tk
 from tkinter import ttk
 from tkinter.scrolledtext import ScrolledText
-
-lib1 = r"./Circular_Queue1.dll"
-lib2 = r"./Circular_Queue2.dll"
+from Circular_Queue2 import CircularQueue as CircQ
 
 v1 = False
 v2 = False
@@ -22,76 +20,87 @@ Node._fields_ = [("next", POINTER(Node)), ("data", c_int)]
 class CircularQueue(Structure):
     _fields_ = [("front", POINTER(Node)), ("rear", POINTER(Node)), ("Size", c_int), ("MaxSize", c_int)]
 
-class libCPP:
-    def __init__(self, lib): 
-        self.lib = lib
-        self.lib = CDLL(lib)
-        self.lib.CreateCircularQueue.argtypes = [c_int, POINTER(c_bool)]
-        self.lib.CreateCircularQueue.restype = POINTER(CircularQueue)
-        self.lib.isEmpty.argtypes = [POINTER(CircularQueue)]
-        self.lib.isEmpty.restype = c_bool
-        self.lib.isFull.argtypes = [POINTER(CircularQueue)]
-        self.lib.isFull.restype = c_bool
-        self.lib.Enqueue.argtypes = [POINTER(CircularQueue), c_int]
-        self.lib.Enqueue.restype = None
-        self.lib.Dequeue.argtypes = [POINTER(CircularQueue), POINTER(c_bool)]
-        self.lib.Dequeue.restype = c_int
-        self.lib.check.argtypes = [POINTER(CircularQueue), POINTER(c_bool), POINTER(c_int)]
-        self.lib.check.restype = None
-        self.lib.DeleteCircularQueue.argtypes = [POINTER(CircularQueue)]
-        self.lib.DeleteCircularQueue.restype = None
-        self.lib.SizeCircularQueue.argtypes = [POINTER(CircularQueue)]
-        self.lib.SizeCircularQueue.restype = c_int
+lib = CDLL("./Circular_Queue1.dll")
+lib.CreateCircularQueue.argtypes = [c_int, POINTER(c_bool)]
+lib.CreateCircularQueue.restype = POINTER(CircularQueue)
+lib.isEmpty.argtypes = [POINTER(CircularQueue)]
+lib.isEmpty.restype = c_bool
+lib.isFull.argtypes = [POINTER(CircularQueue)]
+lib.isFull.restype = c_bool
+lib.Enqueue.argtypes = [POINTER(CircularQueue), c_int]
+lib.Enqueue.restype = None
+lib.Dequeue.argtypes = [POINTER(CircularQueue), POINTER(c_bool)]
+lib.Dequeue.restype = c_int
+lib.check.argtypes = [POINTER(CircularQueue), POINTER(c_bool), POINTER(c_int)]
+lib.check.restype = None
+lib.DeleteCircularQueue.argtypes = [POINTER(CircularQueue)]
+lib.DeleteCircularQueue.restype = None
+lib.SizeCircularQueue.argtypes = [POINTER(CircularQueue)]
+lib.SizeCircularQueue.restype = c_int
 
 def CreateCircularQueue(size:int):
     cq = None
     error = False
     if v3:
         cq, error = CreateCircularQueuePY(size)
-    if v1 or v2:
+    if v1:
         error = c_bool(False)
-        cq = cppLib.lib.CreateCircularQueue(size, byref(error))
+        cq = lib.CreateCircularQueue(size, byref(error))
+    if v2:
+        cq, error = CircQ.CreateCircularQueue(size)
     return cq, error
 
 def Enqueue(cq, element:int):
     if v3:
         EnqueuePY(cq, element)
-    if v1 or v2:
-        cppLib.lib.Enqueue(cq, element)
+    if v1:
+        lib.Enqueue(cq, element)
+    if v2:
+        cq.Enqueue(element)
 
 def isEmpty(cq):
     if v3:
         return is_emptyPY(cq)
-    if v1 or v2:
-        return cppLib.lib.isEmpty(cq)
+    if v1:
+        return lib.isEmpty(cq)
+    if v2:
+        return cq.isEmpty()
 
 def isFull(cq):
     if v3:
         return is_fullPY(cq)
-    if v1 or v2:
-        return cppLib.lib.isFull(cq)
+    if v1:
+        return lib.isFull(cq)
+    if v2:
+        return cq.isFull()
 
 def Dequeue(cq):
     if v3:
         el, error = DequeuePY(cq)
-    if v1 or v2:
+    if v1:
         error = c_bool(False)
-        el = cppLib.lib.Dequeue(cq, byref(error))
+        el = lib.Dequeue(cq, byref(error))
+    if v2:
+        el, error = cq.Dequeue()
     return el, error
 
 def SizeCircularQueue(cq):
     if v3:
         return SizeCircularQueuePY(cq)
-    if v1 or v2:
-        return cppLib.lib.SizeCircularQueue(cq)
+    if v1:
+        return lib.SizeCircularQueue(cq)
+    if v2:
+        return cq.SizeCircularQueue()
 
 def checkButton():
     if v3:
         a, empty = checkPY(cq)
-    if v1 or v2:
+    if v1:
         empty = c_bool(False)
         a = (c_int * SizeCircularQueue(cq))()
-        cppLib.lib.check(cq, byref(empty), a)
+        lib.check(cq, byref(empty), a)
+    if v2:
+        a, empty = CircQ.check(cq)
     if empty:
         output.insert(tk.END, "Очередь пуста.\n")
         output.see(tk.END)
@@ -102,8 +111,10 @@ def checkButton():
 def DeleteCircularQueue(cq):
     if v3:
         DeleteCircularQueuePY(cq)
-    if v1 or v2:
-        cppLib.lib.DeleteCircularQueue(cq)
+    if v1:
+        lib.DeleteCircularQueue(cq)
+    if v2:
+        pass
 
 def min_ind(cq):
     size = SizeCircularQueue(cq)
@@ -188,17 +199,14 @@ def SetLib():
         v1 = True
         v2 = False
         v3 = False 
-        cppLib = libCPP(lib1)
     elif lib == "C++ STL":
         v1 = False
         v2 = True
         v3 = False
-        cppLib = libCPP(lib2)
     elif lib == "Python":
         v1 = False
         v2 = False
         v3 = True
-        cppLib = None
     output.insert(tk.END, "Выбрвна: " + lib + "\n")
     output.see(tk.END)
     lib_frame.place_forget()
